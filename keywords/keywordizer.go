@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"fmt"
 	"flag"
 )
 
@@ -22,9 +23,7 @@ func (me Keyword) out() string {
 
 func main() {
 	flag.Parse()
-	args := flag.Args()
-	//for arg := range args {
-	for i := 0; i < len(args); i++ {
-		println(Keyword(args[i]).out())
+	for i := 0; i < flag.NArg(); i++ {
+		fmt.Println(Keyword(strings.ToLower(flag.Arg(i))).out())
 	}
 }

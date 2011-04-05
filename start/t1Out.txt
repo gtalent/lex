@@ -1,0 +1,23 @@
+Got PROCEDURE
+Got ID... bubba
+Got LPAREN
+Got RPAREN
+Got BEGIN
+Got IF
+Got ID... b
+Got RELOP... EQ
+Got ID... c
+Got THEN
+Got ID... a
+Got ASSIGN
+Got ID... b
+Got SEMICOLON
+Got ELSE
+Got ID... a
+Got ASSIGN
+Got ID... c
+Got SEMICOLON
+Got ENDIF
+Got END
+There were 0 lines
+Identifiers:

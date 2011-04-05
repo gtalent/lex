@@ -1,0 +1,8 @@
+PROCEDURE bubba () 
+BEGIN 
+  IF b = c THEN 
+    a := b;
+  ELSE 
+    a := c;
+  ENDIF 
+END 

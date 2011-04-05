@@ -1,0 +1,16 @@
+[iI][nN][tT]	 {return(INT);}
+[vV][oO][iI][dD]	 {return(VOID);}
+[pP][rR][iI][nN][tT]	 {return(PRINT);}
+[pP][rR][iI][nN][tT][lL][nN]	 {return(PRINTLN);}
+[fF][uU][nN][cC][tT][iI][oO][nN]	 {return(FUNCTION);}
+[pP][rR][oO][gG][rR][aA][mM]	 {return(PROGRAM);}
+[tT][rR][uU][eE]	 {return(TRUE);}
+[fF][aA][lL][sS][eE]	 {return(FALSE);}
+[iI][fF]	 {return(IF);}
+[eE][lL][sS][eE]	 {return(ELSE);}
+[bB][eE][gG][iI][nN]	 {return(BEGIN);}
+[eE][nN][dD]	 {return(END);}
+[wW][hH][iI][lL][eE]	 {return(WHILE);}
+[rR][eE][tT][uU][rR][nN]	 {return(RETURN);}
+[bB][oO][oO][lL][eE][aA][nN]	 {return(BOOLEAN);}
+[nN][uU][lL][lL]	 {return(NULL);}
