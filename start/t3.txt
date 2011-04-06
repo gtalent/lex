@@ -1,8 +1,0 @@
-PROCEDURE bubba () 
-BEGIN 
-  WHILE (a > b)
-  BEGIN
-    a := a - 2;
-    PRINTLN a; 
-  END;
-END;
