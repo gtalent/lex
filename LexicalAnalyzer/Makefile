@@ -2,7 +2,6 @@ include $(GOROOT)/src/Make.inc
 
 TARG=main
 GOFILES=\
-	util.go\
 	lib.go\
 	main.go\
 
