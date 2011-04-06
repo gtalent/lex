@@ -45,6 +45,8 @@
 	
 	int line;
 	int yylval;
+	int numsCount = 0, identsCount = 0;
+	char nums [MAX_NUM_IDENTS][MAX_ID_LENGTH];
 	char idents [MAX_NUM_IDENTS][MAX_ID_LENGTH];
 
 %}
@@ -91,7 +93,6 @@ id        {letter}({letter}|{digit})*
 "."      {return (PERIOD);}
 ","      {return (COMMA);}
 ";"      {return (SEMICOLON);}
-";"      {return (SEMICOLON);}
 
 "&&"     {yylval = AND; return(RELOP);}
 "||"     {yylval = OR; return(RELOP);}
@@ -107,30 +108,32 @@ id        {letter}({letter}|{digit})*
 
 int installID() {
         /* function to install the lexeme, whose first
-           character is pointed to by yytext, and whose
-           length is yyleng, into the symbol table and
-           return a pointer thereto */
+         * character is pointed to by yytext, and whose
+         * length is yyleng, into the symbol table and
+         * return a pointer thereto 
+	 */
 
            return (int) yytext;
 }
 
 int installNum() {
-        /* similar to installID, but puts numerical
-           constants into a separate table */
+        //similar to installID, but puts numerical
+        //constants into a separate table
 }
 
 
 int yywrap() {
-     /* dump contents of id and num tables */
-        printf("There were %d lines\n",line);
+	//dump contents of id and num table
+	printf("There were %d lines\n",line);
 	printf("Identifiers:\n");
-       // etc.
-     return 1;
+	//etc.
+     	return 1;
 }
 
 int main() {
  	int tkn = 0;
    	while (tkn = yylex()) {
+	  printf(tkn);
       	  switch (tkn) {
            	case INT:
              		printf("Got INT\n");
