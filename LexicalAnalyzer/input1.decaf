@@ -1,0 +1,7 @@
+program begin
+	function main() begin
+		//I'm a comment.
+		int i = 0;
+		s = "I'm a string literal.";
+	end
+end
