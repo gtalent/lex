@@ -22,12 +22,16 @@ func main() {
 			tokenType, _, point = nextToken(val, point)
 			fmt.Print(tokenType, ", ")
 		}
+		fmt.Println("\nPrinting identifiers:")
+		for _, v := range identTable {
+			fmt.Println("\t", v)
+		}
+
+		fmt.Println("Printing number literals:")
+		for _, v := range numLitTable {
+			fmt.Println("\t", v)
+		}
 	}
-	/*
-		test1()
-		test2()
-		test3()
-	*/
 }
 
 //Tests symbol identifier.

@@ -90,7 +90,16 @@ func nextToken(val string, point int) (string, string, int) {
 			return keyword, kw, point
 		}
 		//is identifier
-		identTable = append(identTable, token)
+		found := false
+		for _, v := range identTable {
+			if v == token {
+				found = true
+				break
+			}
+		}
+		if !found {
+			identTable = append(identTable, token)
+		}
 		return identifier, token, point
 	case isComment(val, point):
 		token := ""
@@ -107,7 +116,16 @@ func nextToken(val string, point int) (string, string, int) {
 			for ; isNumber(val[point]); point++ {
 				token += string(val[point])
 			}
-			numLitTable = append(numLitTable, token)
+			found := false
+			for _, v := range numLitTable {
+				if v == token {
+					found = true
+					break
+				}
+			}
+			if !found {
+				numLitTable = append(numLitTable, token)
+			}
 		} else {
 			point++
 			for ; val[point] != '"'; point++ {
