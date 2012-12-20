@@ -1,24 +1,50 @@
-package main
+/*
+   Copyright 2011-2012 gtalent2@gmail.com
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+package lex
 
 import (
+	"strconv"
 	"strings"
 )
 
-var identTable []string = make([]string, 0)
-var numLitTable []string = make([]string, 0)
-var keywords []string = []string{"int", "void", "print", "println", "function", "program", "true", "false",
-	"if", "else", "begin", "end", "while", "return", "boolean", "null"}
-var symbols []string = []string{".", ";", "=", ",", "(", ")", "==", "||", "&&", "!", "/", "*", "-", "+", "<<", ">>", "=<", "=>", "<", ">", "!="}
+func Tokens(input string) []Token {
+	var tokens []Token
 
-const (
-	keyword    string = "keyword"
-	identifier = "identifier"
-	symbol     = "symbol"
-	literal    = "literal"
-	comment    = "comment"
-	whitespace = "whitespace"
-	error      = "error"
-)
+	lex := newAnalyzer()
+	for point := 0; point < len(input); {
+		var t Token
+		t.TokType, t.TokValue, point = lex.nextToken(input, point)
+		if t.TokType == IntLiteral {
+			t.TokValue, _ = strconv.Atoi(t.TokValue.(string))
+		} else if t.TokType == BoolLiteral {
+			t.TokValue, _ = strconv.ParseBool(t.TokValue.(string))
+		}
+		tokens = append(tokens, t)
+	}
+
+	return tokens
+}
+
+func Identifiers(input string) []string {
+	lex := newAnalyzer()
+	for point := 0; point < len(input); {
+		_, _, point = lex.nextToken(input, point)
+	}
+	return lex.identTable
+}
 
 func match(a, b string) bool {
 	a = strings.ToUpper(a)
@@ -34,9 +60,31 @@ func isNumber(val byte) bool {
 	return (47 < val && val < 58)
 }
 
+func isComment(val string, point int) bool {
+	return point+1 < len(val) && val[point] == '/' && val[point+1] == '/'
+}
+
+func isWhitespace(val byte) bool {
+	return val == ' ' || val == '\t' || val == '\n'
+}
+
+type lexAnalyzer struct {
+	identTable  []string
+	numLitTable []string
+	keywords    []string
+	symbols     []string
+}
+
+func newAnalyzer() lexAnalyzer {
+	var a lexAnalyzer
+	a.symbols = []string{"&&", "||", "=<", "=>", "==", "!=", "<", ">", "/", "*", "-", "+", "(", ")", "!", "{", "}", "[", "]", "&", "~", "%", "^", "|", "?", ":", ";"}
+	a.keywords = []string{"if", "else", "void", "int", "unsigned", "long", "f", "f", }
+	return a
+}
+
 //Indicates whether or not the given value is a keyword, and if it is, it adjusts for casing.
-func isKeyword(val string) (string, bool) {
-	for _, kw := range keywords {
+func (me *lexAnalyzer) isKeyword(val string) (string, bool) {
+	for _, kw := range me.keywords {
 		if match(val, kw) {
 			return kw, true
 		}
@@ -45,8 +93,8 @@ func isKeyword(val string) (string, bool) {
 }
 
 //Indicates whether or not the given value is a symbol.
-func isSymbol(val string, point int) bool {
-	for _, kw := range symbols {
+func (me *lexAnalyzer) isSymbol(val string, point int) bool {
+	for _, kw := range me.symbols {
 		if pt2 := point + len(kw); pt2 <= len(val) {
 			if val[point:pt2] == kw {
 				return true
@@ -56,16 +104,8 @@ func isSymbol(val string, point int) bool {
 	return false
 }
 
-func isComment(val string, point int) bool {
-	return point+1 < len(val) && val[point] == '/' && val[point+1] == '/'
-}
-
-func isWhitespace(val byte) bool {
-	return val == ' ' || val == '\t' || val == '\n'
-}
-
-func getSymbol(val string, point int) string {
-	for _, kw := range symbols {
+func (me *lexAnalyzer) getSymbol(val string, point int) string {
+	for _, kw := range me.symbols {
 		if pt2 := point + len(kw); pt2 <= len(val) {
 			if val[point:pt2] == kw {
 				return kw
@@ -76,65 +116,66 @@ func getSymbol(val string, point int) string {
 }
 
 //Returns: the token type, the token, the point in the file where the tokenizer left off
-func nextToken(val string, point int) (string, string, int) {
+func (me *lexAnalyzer) nextToken(val string, point int) (int, string, int) {
 	switch {
 	case isWhitespace(val[point]):
-		return whitespace, string(val[point]), point + 1
+		return Whitespace, string(val[point]), point + 1
 	case isCharacter(val[point]): //is a keyword or identifier
 		token := ""
-		for !isSymbol(val, point) && !isWhitespace(val[point]) {
+		for !me.isSymbol(val, point) && !isWhitespace(val[point]) {
 			token += string(val[point])
 			point++
 		}
-		if kw, b := isKeyword(token); b { //is keyword
-			return keyword, kw, point
+		if kw, b := me.isKeyword(token); b { //is keyword
+			return Keyword, kw, point
 		}
 		//is identifier
 		found := false
-		for _, v := range identTable {
+		for _, v := range me.identTable {
 			if v == token {
 				found = true
 				break
 			}
 		}
 		if !found {
-			identTable = append(identTable, token)
+			me.identTable = append(me.identTable, token)
 		}
-		return identifier, token, point
+		return Identifier, token, point
 	case isComment(val, point):
 		token := ""
 		for ; val[point] != '\n'; point++ {
 			token += string(val[point])
 		}
-		return comment, token, point
-	case isSymbol(val, point):
-		s := getSymbol(val, point)
-		return symbol, s, point + len(s)
+		return Comment, token, point
+	case me.isSymbol(val, point):
+		s := me.getSymbol(val, point)
+		return Symbol, s, point + len(s)
 	default: //is a literal
 		token := ""
 		if isNumber(val[point]) { //is a number literal
-			for ; isNumber(val[point]); point++ {
+			for ; point < len(val) && isNumber(val[point]); point++ {
 				token += string(val[point])
 			}
 			found := false
-			for _, v := range numLitTable {
+			for _, v := range me.numLitTable {
 				if v == token {
 					found = true
 					break
 				}
 			}
 			if !found {
-				numLitTable = append(numLitTable, token)
+				me.numLitTable = append(me.numLitTable, token)
 			}
+			return IntLiteral, token, point
 		} else {
 			point++
 			for ; val[point] != '"'; point++ {
 				token += string(val[point])
 			}
 			point++
+			return StringLiteral, token, point
 		}
-		return literal, token, point
 	}
 
-	return error, string(val[point]), point
+	return Error, string(val[point]), point
 }
