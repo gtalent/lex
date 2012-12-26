@@ -23,7 +23,8 @@ import (
 func Tokens(input string) []Token {
 	var tokens []Token
 
-	lex := newAnalyzer()
+	symbols := []string{"&&", "||", "=<", "=>", "==", "!=", "<", ">", "/", "*", "-", "+", "(", ")", "!"}
+	lex := NewAnalyzer(symbols, []string{})
 	for point := 0; point < len(input); {
 		var t Token
 		t.TokType, t.TokValue, point = lex.nextToken(input, point)
@@ -36,14 +37,6 @@ func Tokens(input string) []Token {
 	}
 
 	return tokens
-}
-
-func Identifiers(input string) []string {
-	lex := newAnalyzer()
-	for point := 0; point < len(input); {
-		_, _, point = lex.nextToken(input, point)
-	}
-	return lex.identTable
 }
 
 func match(a, b string) bool {
@@ -68,22 +61,22 @@ func isWhitespace(val byte) bool {
 	return val == ' ' || val == '\t' || val == '\n'
 }
 
-type lexAnalyzer struct {
+type LexAnalyzer struct {
 	identTable  []string
 	numLitTable []string
 	keywords    []string
 	symbols     []string
 }
 
-func newAnalyzer() lexAnalyzer {
-	var a lexAnalyzer
-	a.symbols = []string{"&&", "||", "=<", "=>", "==", "!=", "<", ">", "/", "*", "-", "+", "(", ")", "!", "{", "}", "[", "]", "&", "~", "%", "^", "|", "?", ":", ";"}
-	a.keywords = []string{"if", "else", "void", "int", "unsigned", "long", "f", "f", }
+func NewAnalyzer(symbols, keywords []string) LexAnalyzer {
+	var a LexAnalyzer
+	a.symbols = symbols
+	a.keywords = keywords
 	return a
 }
 
 //Indicates whether or not the given value is a keyword, and if it is, it adjusts for casing.
-func (me *lexAnalyzer) isKeyword(val string) (string, bool) {
+func (me *LexAnalyzer) isKeyword(val string) (string, bool) {
 	for _, kw := range me.keywords {
 		if match(val, kw) {
 			return kw, true
@@ -93,7 +86,7 @@ func (me *lexAnalyzer) isKeyword(val string) (string, bool) {
 }
 
 //Indicates whether or not the given value is a symbol.
-func (me *lexAnalyzer) isSymbol(val string, point int) bool {
+func (me *LexAnalyzer) isSymbol(val string, point int) bool {
 	for _, kw := range me.symbols {
 		if pt2 := point + len(kw); pt2 <= len(val) {
 			if val[point:pt2] == kw {
@@ -104,7 +97,7 @@ func (me *lexAnalyzer) isSymbol(val string, point int) bool {
 	return false
 }
 
-func (me *lexAnalyzer) getSymbol(val string, point int) string {
+func (me *LexAnalyzer) getSymbol(val string, point int) string {
 	for _, kw := range me.symbols {
 		if pt2 := point + len(kw); pt2 <= len(val) {
 			if val[point:pt2] == kw {
@@ -116,7 +109,7 @@ func (me *lexAnalyzer) getSymbol(val string, point int) string {
 }
 
 //Returns: the token type, the token, the point in the file where the tokenizer left off
-func (me *lexAnalyzer) nextToken(val string, point int) (int, string, int) {
+func (me *LexAnalyzer) nextToken(val string, point int) (int, string, int) {
 	switch {
 	case isWhitespace(val[point]):
 		return Whitespace, string(val[point]), point + 1
