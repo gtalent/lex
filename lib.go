@@ -31,7 +31,7 @@ func Tokens(input string) []Token {
 	lex := NewAnalyzer(symbols, []string{}, stringTypes, commentTypes, true)
 	for point := 0; point < len(input); {
 		var t Token
-		t.TokType, t.TokValue, point = lex.nextToken(input, point)
+		t.TokType, t.TokValue, point = lex.NextToken(input, point)
 		if t.TokType == IntLiteral {
 			t.TokValue, _ = strconv.Atoi(t.TokValue.(string))
 		} else if t.TokType == BoolLiteral {
