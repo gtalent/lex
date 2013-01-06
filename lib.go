@@ -20,12 +20,15 @@ import (
 	"strings"
 )
 
+//Returns tokens from a generic parser used in another project.
+//Here mainly for compatibility reasons.
 func Tokens(input string) []Token {
 	var tokens []Token
 
 	symbols := []string{"&&", "||", "=<", "=>", "==", "!=", "<", ">", "/", "*", "-", "+", "(", ")", "!"}
+	stringTypes := []Pair{{Opener: "'", Closer: "'"}, {Opener: "\"", Closer: "\""}}
 	commentTypes := []Pair{{Opener: "#", Closer: "\n"}}
-	lex := NewAnalyzer(symbols, []string{}, commentTypes, true)
+	lex := NewAnalyzer(symbols, []string{}, stringTypes, commentTypes, true)
 	for point := 0; point < len(input); {
 		var t Token
 		t.TokType, t.TokValue, point = lex.nextToken(input, point)
@@ -53,7 +56,17 @@ type Pair struct {
 	Closer string
 }
 
-func (me *Pair) isComment(val string) bool {
+//Returns the contents of the pair.
+func (me *Pair) parse(val string) string {
+	token := ""
+	for len(val) != 0 && val[:len(me.Closer)] != me.Closer {
+		val = val[1:]
+		token += string(val[0])
+	}
+	return token
+}
+
+func (me *Pair) opens(val string) bool {
 	return len(me.Opener) <= len(val) && val[:len(me.Opener)] == me.Opener
 }
 
@@ -68,12 +81,15 @@ type LexAnalyzer struct {
 	symbols      []string
 	matches      func(a, b string) bool
 	commentTypes []Pair
+	stringTypes  []Pair
 }
 
-func NewAnalyzer(symbols, keywords []string, commentTypes []Pair, caseSensitive bool) LexAnalyzer {
+func NewAnalyzer(symbols, keywords []string, stringTypes, commentTypes []Pair, caseSensitive bool) LexAnalyzer {
 	var a LexAnalyzer
 	a.symbols = symbols
 	a.keywords = keywords
+	a.stringTypes = stringTypes
+	a.commentTypes = commentTypes
 	if caseSensitive {
 		a.matches = func(a, b string) bool {
 			return a == b
@@ -88,11 +104,21 @@ func NewAnalyzer(symbols, keywords []string, commentTypes []Pair, caseSensitive 
 	return a
 }
 
-func (me *LexAnalyzer) isComment(val string, point int, opener, closer *string) bool {
-	val = val[point:]
+func (me *LexAnalyzer) isComment(val string, token, closer *string) bool {
 	for _, v := range me.commentTypes {
-		if v.isComment(val) {
-			*opener = v.Opener
+		if v.opens(val) {
+			*token = v.parse(val)
+			*closer = v.Closer
+			return true
+		}
+	}
+	return false
+}
+
+func (me *LexAnalyzer) isString(val string, token, closer *string) bool {
+	for _, v := range me.stringTypes {
+		if v.opens(val) {
+			*token = v.parse(val)
 			*closer = v.Closer
 			return true
 		}
@@ -135,12 +161,11 @@ func (me *LexAnalyzer) getSymbol(val string, point int) string {
 
 //Returns: the token type, the token, the point in the file where the tokenizer left off
 func (me *LexAnalyzer) nextToken(val string, point int) (int, string, int) {
-	var opener, closer string
+	var token, closer string
 	switch {
 	case isWhitespace(val[point]):
 		return Whitespace, string(val[point]), point + 1
 	case isCharacter(val[point]): //is a keyword or identifier
-		token := ""
 		for !me.isSymbol(val, point) && !isWhitespace(val[point]) {
 			token += string(val[point])
 			point++
@@ -160,19 +185,13 @@ func (me *LexAnalyzer) nextToken(val string, point int) (int, string, int) {
 			me.identTable = append(me.identTable, token)
 		}
 		return Identifier, token, point
-	case me.isComment(val, point, &opener, &closer):
-		token := ""
-		point += len(opener)
-		for ; val[:len(closer)] != closer; point++ {
-			val = val[1:]
-			token += string(val[0])
-		}
+	case me.isComment(val[point:], &token, &closer):
+		point += len(token) + len(closer)
 		return Comment, token, point
 	case me.isSymbol(val, point):
 		s := me.getSymbol(val, point)
 		return Symbol, s, point + len(s)
 	default: //is a literal
-		token := ""
 		if isNumber(val[point]) { //is a number literal
 			for ; point < len(val) && isNumber(val[point]); point++ {
 				token += string(val[point])
@@ -188,12 +207,8 @@ func (me *LexAnalyzer) nextToken(val string, point int) (int, string, int) {
 				me.numLitTable = append(me.numLitTable, token)
 			}
 			return IntLiteral, token, point
-		} else {
-			point++
-			for ; val[point] != '"'; point++ {
-				token += string(val[point])
-			}
-			point++
+		} else if me.isString(val[point:], &token, &closer) {
+			point += len(token) + len(closer)
 			return StringLiteral, token, point
 		}
 	}
