@@ -24,7 +24,8 @@ func Tokens(input string) []Token {
 	var tokens []Token
 
 	symbols := []string{"&&", "||", "=<", "=>", "==", "!=", "<", ">", "/", "*", "-", "+", "(", ")", "!"}
-	lex := NewAnalyzer(symbols, []string{})
+	commentTypes := []Pair{{Opener: "#", Closer: "\n"}}
+	lex := NewAnalyzer(symbols, []string{}, commentTypes, true)
 	for point := 0; point < len(input); {
 		var t Token
 		t.TokType, t.TokValue, point = lex.nextToken(input, point)
@@ -39,12 +40,6 @@ func Tokens(input string) []Token {
 	return tokens
 }
 
-func match(a, b string) bool {
-	a = strings.ToUpper(a)
-	b = strings.ToUpper(b)
-	return a == b
-}
-
 func isCharacter(val byte) bool {
 	return (val < 91 && val > 64) || (val < 123 && val > 96)
 }
@@ -53,8 +48,13 @@ func isNumber(val byte) bool {
 	return (47 < val && val < 58)
 }
 
-func isComment(val string, point int) bool {
-	return point+1 < len(val) && val[point] == '/' && val[point+1] == '/'
+type Pair struct {
+	Opener string
+	Closer string
+}
+
+func (me *Pair) isComment(val string) bool {
+	return len(me.Opener) <= len(val) && val[:len(me.Opener)] == me.Opener
 }
 
 func isWhitespace(val byte) bool {
@@ -62,23 +62,48 @@ func isWhitespace(val byte) bool {
 }
 
 type LexAnalyzer struct {
-	identTable  []string
-	numLitTable []string
-	keywords    []string
-	symbols     []string
+	identTable   []string
+	numLitTable  []string
+	keywords     []string
+	symbols      []string
+	matches      func(a, b string) bool
+	commentTypes []Pair
 }
 
-func NewAnalyzer(symbols, keywords []string) LexAnalyzer {
+func NewAnalyzer(symbols, keywords []string, commentTypes []Pair, caseSensitive bool) LexAnalyzer {
 	var a LexAnalyzer
 	a.symbols = symbols
 	a.keywords = keywords
+	if caseSensitive {
+		a.matches = func(a, b string) bool {
+			return a == b
+		}
+	} else {
+		a.matches = func(a, b string) bool {
+			a = strings.ToUpper(a)
+			b = strings.ToUpper(b)
+			return a == b
+		}
+	}
 	return a
+}
+
+func (me *LexAnalyzer) isComment(val string, point int, opener, closer *string) bool {
+	val = val[point:]
+	for _, v := range me.commentTypes {
+		if v.isComment(val) {
+			*opener = v.Opener
+			*closer = v.Closer
+			return true
+		}
+	}
+	return false
 }
 
 //Indicates whether or not the given value is a keyword, and if it is, it adjusts for casing.
 func (me *LexAnalyzer) isKeyword(val string) (string, bool) {
 	for _, kw := range me.keywords {
-		if match(val, kw) {
+		if me.matches(val, kw) {
 			return kw, true
 		}
 	}
@@ -110,6 +135,7 @@ func (me *LexAnalyzer) getSymbol(val string, point int) string {
 
 //Returns: the token type, the token, the point in the file where the tokenizer left off
 func (me *LexAnalyzer) nextToken(val string, point int) (int, string, int) {
+	var opener, closer string
 	switch {
 	case isWhitespace(val[point]):
 		return Whitespace, string(val[point]), point + 1
@@ -134,10 +160,12 @@ func (me *LexAnalyzer) nextToken(val string, point int) (int, string, int) {
 			me.identTable = append(me.identTable, token)
 		}
 		return Identifier, token, point
-	case isComment(val, point):
+	case me.isComment(val, point, &opener, &closer):
 		token := ""
-		for ; val[point] != '\n'; point++ {
-			token += string(val[point])
+		point += len(opener)
+		for ; val[:len(closer)] != closer; point++ {
+			val = val[1:]
+			token += string(val[0])
 		}
 		return Comment, token, point
 	case me.isSymbol(val, point):
