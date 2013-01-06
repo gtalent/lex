@@ -160,7 +160,7 @@ func (me *LexAnalyzer) getSymbol(val string, point int) string {
 }
 
 //Returns: the token type, the token, the point in the file where the tokenizer left off
-func (me *LexAnalyzer) nextToken(val string, point int) (int, string, int) {
+func (me *LexAnalyzer) NextToken(val string, point int) (int, string, int) {
 	var token, closer string
 	switch {
 	case isWhitespace(val[point]):
