@@ -16,13 +16,12 @@
 package lex
 
 import (
-	"strconv"
 	"strings"
 )
 
 //Returns tokens from a generic parser used in another project.
 //Here mainly for compatibility reasons.
-func Tokens(input string) []Token {
+func Tokens(input string) TokenList {
 	var tokens []Token
 
 	symbols := []string{"&&", "||", "=<", "=>", "==", "!=", "<", ">", "/", "*", "-", "+", "(", ")", "!"}
@@ -31,12 +30,7 @@ func Tokens(input string) []Token {
 	lex := NewAnalyzer(symbols, []string{}, stringTypes, commentTypes, true)
 	for point := 0; point < len(input); {
 		var t Token
-		t.TokType, t.TokValue, point = lex.NextToken(input, point)
-		if t.TokType == IntLiteral {
-			t.TokValue, _ = strconv.Atoi(t.TokValue.(string))
-		} else if t.TokType == BoolLiteral {
-			t.TokValue, _ = strconv.ParseBool(t.TokValue.(string))
-		}
+		t, point = lex.NextToken(input, point)
 		tokens = append(tokens, t)
 	}
 
@@ -160,18 +154,18 @@ func (me *LexAnalyzer) getSymbol(val string, point int) string {
 }
 
 //Returns: the token type, the token, the point in the file where the tokenizer left off
-func (me *LexAnalyzer) NextToken(val string, point int) (int, string, int) {
+func (me *LexAnalyzer) NextToken(val string, point int) (Token, int) {
 	var token, closer string
 	switch {
 	case isWhitespace(val[point]):
-		return Whitespace, string(val[point]), point + 1
+		return Token{Whitespace, string(val[point])}, point + 1
 	case isCharacter(val[point]): //is a keyword or identifier
 		for !me.isSymbol(val, point) && !isWhitespace(val[point]) {
 			token += string(val[point])
 			point++
 		}
 		if kw, b := me.isKeyword(token); b { //is keyword
-			return Keyword, kw, point
+			return Token{Keyword, kw}, point
 		}
 		//is identifier
 		found := false
@@ -184,13 +178,13 @@ func (me *LexAnalyzer) NextToken(val string, point int) (int, string, int) {
 		if !found {
 			me.identTable = append(me.identTable, token)
 		}
-		return Identifier, token, point
+		return Token{Identifier, token}, point
 	case me.isComment(val[point:], &token, &closer):
 		point += len(token) + len(closer)
-		return Comment, token, point
+		return Token{Comment, token}, point
 	case me.isSymbol(val, point):
 		s := me.getSymbol(val, point)
-		return Symbol, s, point + len(s)
+		return Token{Symbol, s}, point + len(s)
 	default: //is a literal
 		if isNumber(val[point]) { //is a number literal
 			for ; point < len(val) && isNumber(val[point]); point++ {
@@ -206,12 +200,26 @@ func (me *LexAnalyzer) NextToken(val string, point int) (int, string, int) {
 			if !found {
 				me.numLitTable = append(me.numLitTable, token)
 			}
-			return IntLiteral, token, point
+			return Token{IntLiteral, token}, point
 		} else if me.isString(val[point:], &token, &closer) {
 			point += len(token) + len(closer)
-			return StringLiteral, token, point
+			return Token{StringLiteral, token}, point
 		}
 	}
 
-	return Error, string(val[point]), point
+	return Token{Error, string(val[point])}, point
+}
+
+//Returns tokens from a generic parser used in another project.
+//Here mainly for compatibility reasons.
+func (me *LexAnalyzer) TokenList(input string) TokenList {
+	var tokens []Token
+
+	for point := 0; point < len(input); {
+		var t Token
+		t, point = me.NextToken(input, point)
+		tokens = append(tokens, t)
+	}
+
+	return tokens
 }

@@ -17,55 +17,66 @@ package lex
 
 import "strconv"
 
+type TokenList []Token
+
+//Returns next Token
+func (me *TokenList) Peak() Token {
+	return (*me)[0]
+}
+
+//Drops the next Token from the list and returns it
+func (me *TokenList) Next() Token {
+	retval := (*me)[0]
+	*me = (*me)[1:]
+	return retval
+}
+
+func (me *TokenList) HasNext() bool {
+	return len(*me) != 0
+}
+
 type Token struct {
-	TokType  int
-	TokValue interface{}
-}
-
-func (me *Token) Type() int {
-	return me.TokType
-}
-
-func (me *Token) Value() interface{} {
-	return me.TokValue
+	Type  int
+	Value string
 }
 
 func (me *Token) Set(t int, val interface{}) {
-	me.TokType = t
-	me.TokValue = val
+	me.Type = t
+	switch val.(type) {
+	case int:
+		me.Value = strconv.Itoa(val.(int))
+	case bool:
+		me.Value = strconv.FormatBool(val.(bool))
+	case string:
+		me.Value = val.(string)
+	}
 }
 
 func (me *Token) SetInt(val int) {
-	me.TokType = IntLiteral
-	me.TokValue = val
+	me.Type = IntLiteral
+	me.Value = strconv.Itoa(val)
 }
 
 func (me *Token) Int() int {
-	return me.TokValue.(int)
+	v, _ := strconv.Atoi(me.Value)
+	return v
 }
 
 func (me *Token) SetString(val string) {
-	me.TokType = StringLiteral
-	me.TokValue = val
+	me.Type = StringLiteral
+	me.Value = val
 }
 
 func (me *Token) String() string {
-	switch me.TokValue.(type) {
-	case int:
-		return strconv.Itoa(me.TokValue.(int))
-	case bool:
-		return strconv.FormatBool(me.TokValue.(bool))
-	case string:
-		return me.TokValue.(string)
-	}
-	return ""
+	return me.Value
 }
 
 func (me *Token) SetBool(val bool) {
-	me.TokType = BoolLiteral
-	me.TokValue = val
+	me.Type = BoolLiteral
+	me.Value = strconv.FormatBool(val)
 }
 
 func (me *Token) Bool() bool {
-	return me.TokValue.(bool)
+	v, _ := strconv.ParseBool(me.Value)
+	return v
 }
